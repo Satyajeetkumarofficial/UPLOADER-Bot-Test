@@ -16,3 +16,6 @@ PREMIUM_USERS = os.getenv("PREMIUM_USERS", "").split(",")
 
 # Optional: Log channel ID (e.g., -1001234567890)
 LOG_CHANNEL = os.getenv("LOG_CHANNEL")
+
+# MongoDB
+MONGO_URI = os.getenv("MONGO_URI")
