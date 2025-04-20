@@ -1,64 +1,73 @@
 import os
 import requests
-from pytube import YouTube
-import re
+import yt_dlp
 import shutil
+import uuid
+import tempfile
 
+def generate_temp_file(name="file"):
+    temp_dir = tempfile.gettempdir()
+    return os.path.join(temp_dir, f"{name}_{uuid.uuid4().hex}")
+
+# Download from direct link
+def download_from_url(url, size_limit):
+    local_filename = generate_temp_file("direct")
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        total_size = 0
+        with open(local_filename, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                total_size += len(chunk)
+                if total_size > size_limit:
+                    f.close()
+                    os.remove(local_filename)
+                    raise Exception("File exceeds limit.")
+                f.write(chunk)
+    return local_filename
+
+# YouTube Download
 def download_youtube(url):
-    yt = YouTube(url)
-    stream = yt.streams.get_highest_resolution()
-    file_path = stream.download(output_path="downloads/")
-    return file_path
+    output = generate_temp_file("yt")
+    ydl_opts = {
+        'outtmpl': output + '.%(ext)s',
+        'format': 'bestvideo+bestaudio/best',
+        'merge_output_format': 'mp4',
+        'quiet': True
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+    for ext in ['mp4', 'mkv', 'webm']:
+        file = output + f'.{ext}'
+        if os.path.exists(file):
+            return file
+    raise Exception("YouTube download failed.")
 
-def download_from_url(url, limit):
-    response = requests.get(url, stream=True)
-    file_size = int(response.headers.get("content-length", 0))
-    if file_size > limit:
-        raise Exception("File size exceeds your allowed limit.")
-
-    os.makedirs("downloads", exist_ok=True)
-    filename = url.split("/")[-1].split("?")[0]
-    file_path = os.path.join("downloads", filename)
-
-    with open(file_path, "wb") as f:
-        for chunk in response.iter_content(1024 * 1024):
-            f.write(chunk)
-    return file_path
-
+# Instagram Download
 def download_instagram(url):
-    api = "https://saveinsta.io/core/ajax.php"
-    data = {"q": url, "t": "media", "lang": "en"}
-    headers = {"x-requested-with": "XMLHttpRequest"}
-    r = requests.post(api, data=data, headers=headers)
-    media_url = re.search(r'source src="([^"]+)"', r.text)
-    if not media_url:
-        raise Exception("Failed to extract Instagram media.")
-    return download_from_url(media_url.group(1), 4294967296)
+    output = generate_temp_file("insta")
+    ydl_opts = {
+        'outtmpl': output + '.%(ext)s',
+        'quiet': True
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+    for file in os.listdir(tempfile.gettempdir()):
+        if file.startswith(os.path.basename(output)):
+            return os.path.join(tempfile.gettempdir(), file)
+    raise Exception("Instagram download failed.")
 
+# Facebook Download
 def download_facebook(url):
-    api = "https://fbdownloader.online/api/ajaxSearch"
-    data = {"q": url}
-    headers = {"x-requested-with": "XMLHttpRequest"}
-    r = requests.post(api, data=data, headers=headers)
-    video_url = re.search(r'"url":"(https[^"]+)"', r.text)
-    if not video_url:
-        raise Exception("Failed to extract Facebook video.")
-    return download_from_url(video_url.group(1).replace("\\u0026", "&"), 4294967296)
+    return download_instagram(url)  # Same yt_dlp logic
 
+# Terabox Dummy (replace with real logic later)
 def download_terabox(url):
-    raise Exception("Terabox support needs advanced scraping — coming soon!")
+    raise Exception("Terabox download not implemented yet.")
 
-def download_mediafire(url):
-    page = requests.get(url).text
-    dl_url = re.search(r'href="(https://download[^"]+)"', page)
-    if not dl_url:
-        raise Exception("Mediafire download link not found.")
-    return download_from_url(dl_url.group(1), 4294967296)
-
+# Google Drive Dummy (replace with real logic later)
 def download_gdrive(url):
-    file_id_match = re.search(r'/d/([a-zA-Z0-9_-]+)', url) or re.search(r'id=([a-zA-Z0-9_-]+)', url)
-    if not file_id_match:
-        raise Exception("Google Drive file ID not found.")
-    file_id = file_id_match.group(1)
-    gdown_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    return download_from_url(gdown_url, 4294967296)
+    raise Exception("Google Drive download not implemented yet.")
+
+# MediaFire Dummy (replace with real logic later)
+def download_mediafire(url):
+    raise Exception("MediaFire download not implemented yet.")
