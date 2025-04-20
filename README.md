@@ -1,28 +1,23 @@
 # Telegram URL Uploader Bot
 
-A powerful Telegram bot to upload files from URLs including:
+A bot to upload/download files from YouTube, Instagram, Facebook, Direct Links, etc.
 
-- YouTube
-- Instagram
-- Facebook
-- Mediafire
-- Google Drive
-- Direct Links
-- (Terabox coming soon)
+### Features:
+- Free user: Max 4GB
+- Premium: Max 100GB (adjustable)
+- Log channel, MongoDB, thumbnail support
 
-## Features
+### Deploy on Koyeb:
+1. Fork repo or upload files
+2. Set these ENV vars:
+   - BOT_TOKEN
+   - API_ID
+   - API_HASH
+   - MONGO_URI
+   - LOG_CHANNEL
+3. Click “Deploy Now” on Koyeb and link your GitHub repo
 
-- 4GB upload limit for free users
-- 20GB+ for premium users
-- MongoDB-ready (can be added easily)
-- Log channel support
-- Easy to deploy on Koyeb
-
----
-
-## How to Deploy
-
-### 1. Clone the Repo
+### Run Locally:
 ```bash
-git clone https://github.com/your-repo/url-uploader-bot
-cd url-uploader-bot
+pip install -r requirements.txt
+python bot.py
