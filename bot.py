@@ -7,7 +7,10 @@ from helpers import (
     download_gdrive
 )
 from config import *
-from db import log_user, log_file, is_premium
+from db import log_user, log_file, is_premium, set_premium
+from datetime import datetime
+
+ADMIN_USERS = [123456789]  # Replace with your Telegram user ID
 
 app = Client("url_uploader_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
 
@@ -58,9 +61,15 @@ async def upload_handler(client, message: Message):
             raise Exception("File exceeds your limit.")
 
         log_file(user.id, url, os.path.basename(file_path), file_size)
-        await message.reply_document(file_path)
 
-        # Send log to log channel
+        thumb_path = f"thumbs/{user.id}.jpg"
+        thumbnail = thumb_path if os.path.exists(thumb_path) else None
+
+        await message.reply_document(
+            file_path,
+            thumb=thumbnail
+        )
+
         if LOG_CHANNEL:
             await app.send_message(
                 int(LOG_CHANNEL),
@@ -74,6 +83,41 @@ async def upload_handler(client, message: Message):
 
     except Exception as e:
         await message.reply_text(f"❌ Error:\n`{e}`")
+
+
+@app.on_message(filters.photo & filters.private)
+async def save_thumbnail(client, message: Message):
+    user_id = message.from_user.id
+    log_user(message.from_user)
+    thumb_path = f"thumbs/{user_id}.jpg"
+    await message.download(file_name=thumb_path)
+    await message.reply_text("✅ Thumbnail saved successfully!")
+
+
+@app.on_message(filters.command("clearthumb") & filters.private)
+async def clear_thumbnail(client, message: Message):
+    thumb_path = f"thumbs/{message.from_user.id}.jpg"
+    if os.path.exists(thumb_path):
+        os.remove(thumb_path)
+        await message.reply_text("❌ Thumbnail removed.")
+    else:
+        await message.reply_text("No thumbnail was set.")
+
+
+@app.on_message(filters.command("addpremium") & filters.private)
+async def add_premium(client, message: Message):
+    if message.from_user.id not in ADMIN_USERS:
+        return await message.reply_text("You are not authorized.")
+
+    try:
+        _, user_id_str, days_str = message.text.split()
+        user_id = int(user_id_str)
+        days = int(days_str)
+
+        set_premium(user_id, days)
+        await message.reply_text(f"✅ User `{user_id}` granted premium for {days} days.")
+    except Exception:
+        await message.reply_text("Usage: /addpremium <user_id> <days>")
 
 
 app.run()
