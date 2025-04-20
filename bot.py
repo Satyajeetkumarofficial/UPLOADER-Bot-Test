@@ -1,4 +1,5 @@
-from pyrogram import Client, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from pyrogram.types import Message
 import os
 from helpers import (
